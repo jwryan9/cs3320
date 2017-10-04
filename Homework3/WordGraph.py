@@ -4,41 +4,70 @@ from string import ascii_lowercase
 class WordGraph:
     def __init__(self, word_list):
         self.graphDict = {}
-        self.numberOfConnectedComponents = 0
-
+        word_list = sorted(word_list)
         for word in word_list:
             self.graphDict.update({word: ''})
 
         for word in word_list:
             results = try_letter_insert_dict(word, self.graphDict)
             results.extend(try_letter_swap_dict(word, self.graphDict))
-            self.numberOfConnectedComponents += len(results)
             self.graphDict[word] = results
 
-        print(self.graphDict)
-        print(len(self.graphDict))
+        self.graph_for_cc_search = self.graphDict
+
+        for node in self.graphDict:
+            print(str(node) + ': ' + str(self.graphDict[node]))
+
+    def verticies(self):
+        return list(self.graphDict.keys())
+
+    def edges(self):
+        return list(self.graphDict.keys())
 
     def number_of_components(self):
-        return self.numberOfConnectedComponents
+        result = []
+        nodes = set()
+        number_of_connected_components = 0
 
-    def shortest_path(self, word1, word2, path=[]):
-        path.append(word1)
+        return number_of_connected_components
 
-        if word1 == word2:
-            return path
-
-        if word1 not in self.graphDict:
+    def shortest_path(self, start, goal):
+        try:
+            return next(self.bfs_paths(start, goal))
+        except:
             return None
 
-        shortest = None
-        for word in self.graphDict[word1]:
-            if word not in path:
-                newpath = self.shortest_path(word, word2, path)
+    def dfs(self, start, visited=set()):
+        """
+        gets a list of connected components using dfs
+        :param start: vetex to search from
+        :return: list of connected components
+        """
+        stack = [start]
+        while stack:
+            vertex = stack.pop()
+            if vertex not in visited:
+                visited.update([vertex])
+                for element in self.graph_for_cc_search[vertex]:
+                    if element in visited:
+                        self.graph_for_cc_search[vertex].remove(element)
+                stack.extend(self.graph_for_cc_search[vertex])
+                self.graph_for_cc_search.pop(vertex)
+        return visited
 
-                if newpath:
-                    if not shortest or len(newpath) < len(shortest):
-                        shortest = newpath
-        return shortest
+    def number_of_components(self):
+        """
+        Counts the number of connected components in the graph
+        :return: number of connected components
+        """
+        # run dfs for first vertex of graph to initialize visited
+        visited = self.dfs(next(iter(self.graphDict.keys())))
+        num_cc = 1
+        while self.graph_for_cc_search:
+            vertex = next(iter(self.graph_for_cc_search))
+            visited = self.dfs(vertex, visited)
+            num_cc +=1
+        return num_cc
 
 
 def try_letter_swap_dict(word, word_dict):
@@ -67,10 +96,9 @@ def main():
     file = 'sgb-words.txt'
     with open(file) as f:
         words = f.read().split()
-    words = ['to', 'too', 'two', 'for', 'fire', 'four', 'tour', 'dire']
+    # words = ['to', 'too', 'two', 'fire', 'for', 'fir', 'fore', 'tor']
     g = WordGraph(words)
-    shortestpath = g.shortest_path('for', 'tour')
-    print(shortestpath)
+    print(g.number_of_components())
 
 
 if __name__ == '__main__':
